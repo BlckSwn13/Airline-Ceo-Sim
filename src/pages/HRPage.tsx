@@ -1,4 +1,3 @@
-// src/pages/HRPage.tsx
 import React from 'react';
 import { useHRStore } from '../hooks/useHRStore';
 
