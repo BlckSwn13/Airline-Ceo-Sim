@@ -1,7 +1,3 @@
-/**
- * Defines interfaces for common types used across the simulator.  
- */
-
 export interface UserConfig {
   airlineName: string;
   ceoName: string;
@@ -10,6 +6,13 @@ export interface UserConfig {
     secondary: string;
   };
   logo?: string;
+
+  /** Onboarding‑Optionen */
+  financeMode?: 'real' | 'sandbox';
+  timeMode?: 'real' | 'sandbox';
+  timeScale?: 'normal' | 'fast' | 'top';
+  fleetPreset?: 'none' | 'small' | 'medium' | 'large' | 'custom';
+  customFleet?: Array<{ makerModel: string; count: number }>;
 }
 
 export type Status = 'ON_TIME' | 'DELAYED' | 'CANCELLED' | 'DIVERTED';
