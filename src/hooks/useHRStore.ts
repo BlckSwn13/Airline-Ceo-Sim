@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 type Employee = {
   id: string;
@@ -6,40 +7,41 @@ type Employee = {
   role: string;
   level: 'Jr' | 'Mid' | 'Sr';
   cost: number;
+  age?: number;
+  position?: string;
 };
 
 type Program = {
   id: string;
   name: string;
-  status: 'geplant' | 'aktiv' | 'abgeschlossen';
+  budget: number;
+  active: boolean;
 };
 
 type HRState = {
   employees: Employee[];
   programs: Program[];
   budget: number;
-  hire: () => void;
-  launchProgram: (name: string) => void;
-  setBudget: (n: number) => void;
+  hire: (e: Omit<Employee, 'id'>) => void;
+  addPerson: (name: string, role: string, age?: number, position?: string) => void;
+  launchProgram: (p: Omit<Program, 'id' | 'active'>) => void;
+  setBudget: (b: number) => void;
 };
 
-export const useHRStore = create<HRState>((set, get) => ({
-  employees: [],
-  programs: [],
-  budget: 500000,
-  hire: () => {
-    const next: Employee = {
-      id: crypto.randomUUID(),
-      name: `Mitarbeiter ${get().employees.length + 1}`,
-      role: 'Cabin Crew',
-      level: 'Jr',
-      cost: 3500
-    };
-    set(state => ({ employees: [...state.employees, next] }));
-  },
-  launchProgram: (name: string) => {
-    const p: Program = { id: crypto.randomUUID(), name, status: 'aktiv' };
-    set(state => ({ programs: [...state.programs, p] }));
-  },
-  setBudget: (n: number) => set({ budget: n })
-}));
+export const useHRStore = create<HRState>()(persist(
+  (set) => ({
+    employees: [],
+    programs: [],
+    budget: 1_000_000,
+    hire: (e) => set(s => ({ employees: [...s.employees, { ...e, id: crypto.randomUUID() }] })),
+    addPerson: (name, role, age, position) => set(s => ({
+      employees: [
+        ...s.employees,
+        { id: crypto.randomUUID(), name, role, age, position, level: 'Sr', cost: 0 }
+      ]
+    })),
+    launchProgram: (p) => set(s => ({ programs: [...s.programs, { ...p, id: crypto.randomUUID(), active: true }] })),
+    setBudget: (b) => set(() => ({ budget: b })),
+  }),
+  { name: 'hr-store' }
+));
