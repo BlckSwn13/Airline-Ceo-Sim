@@ -2,10 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet CSS für Karten */
+@import "leaflet/dist/leaflet.css";
+
 /* Global styles */
 :root {
-  --brand-1: #4da3ff; /* default primary colour if user does not set one */
-  --brand-2: #7cf3c0; /* default secondary colour */
+  --brand-1: #4da3ff;
+  --brand-2: #7cf3c0;
 }
 
 body {
@@ -16,14 +19,8 @@ body {
 
 /* Glass effect panels */
 .glass-panel {
-  background: var(--tw-gradient-stops);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-  border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-:root{
-  --brand-1:#38bdf8; /* cyan-400 */
-  --brand-2:#a78bfa; /* violet-400 */
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
 }
