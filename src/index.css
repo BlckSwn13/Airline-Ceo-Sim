@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+:root {
+  --brand-1: #4da3ff; /* default primary colour if user does not set one */
+  --brand-2: #7cf3c0; /* default secondary colour */
+}
+
+body {
+  @apply bg-bg text-white;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Glass effect panels */
+.glass-panel {
+  background: var(--tw-gradient-stops);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
