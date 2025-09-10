@@ -1,297 +1,115 @@
-// src/components/Auth.tsx
-import React, { useMemo, useState } from 'react';
-import type { UserConfig } from '../types';
+import React, { useState } from 'react';
+import type { UserConfig } from '@types';
 
 interface AuthProps {
-  onComplete: (cfg: UserConfig) => void;
+  onComplete: (config: UserConfig) => void;
 }
-
-type FinanceMode = 'real' | 'sandbox';
-type FleetPreset = 'none' | 'small' | 'medium' | 'large' | 'custom';
-type GameSpeed = 'real' | 'normal' | 'fast' | 'top';
-
-const DEFAULT_PRIMARY = '#6E56CF';
-const DEFAULT_SECONDARY = '#22D3EE';
-
-const presets: Record<FleetPreset, string> = {
-  none: 'Keine Flotte (0)',
-  small: 'Klein (10 Kurz, 4 Mittel)',
-  medium: 'Mittel (25 Kurz, 10 Mittel, 5 Lang)',
-  large: 'Groß (100 Kurz, 60 Mittel, 40 Lang)',
-  custom: 'Selbst wählbar',
-};
 
 const Auth: React.FC<AuthProps> = ({ onComplete }) => {
   const [airlineName, setAirlineName] = useState('');
   const [ceoName, setCeoName] = useState('');
-  const [primary, setPrimary] = useState(DEFAULT_PRIMARY);
-  const [secondary, setSecondary] = useState(DEFAULT_SECONDARY);
+  const [password, setPassword] = useState('');
+  const [primary, setPrimary] = useState('#4da3ff');
+  const [secondary, setSecondary] = useState('#7cf3c0');
+  const [logo, setLogo] = useState<string | undefined>(undefined);
 
-  // Registrierung – neue Felder
-  const [financeMode, setFinanceMode] = useState<FinanceMode>('real');
-  const [fleetPreset, setFleetPreset] = useState<FleetPreset>('none');
-  const [gameSpeed, setGameSpeed] = useState<GameSpeed>('real');
-
-  // Custom Fleet
-  const [customFleet, setCustomFleet] = useState<
-    { makerModel: string; count: number }[]
-  >([
-    { makerModel: '', count: 0 },
-    { makerModel: '', count: 0 },
-    { makerModel: '', count: 0 },
-    { makerModel: '', count: 0 },
-    { makerModel: '', count: 0 },
+  // Flottenvorgabe
+  const [fleetPreset, setFleetPreset] = useState<'none'|'small'|'medium'|'large'|'custom'>('small');
+  const [customFleet, setCustomFleet] = useState<Array<{type:string; count:number}>>([
+    { type: 'A320', count: 6 },
+    { type: 'B737', count: 4 },
   ]);
 
-  const canSubmit = useMemo(() => {
-    if (!airlineName.trim() || !ceoName.trim()) return false;
-    if (fleetPreset === 'custom') {
-      // Mindestens eine valide Zeile
-      return customFleet.some((r) => r.makerModel.trim() && r.count > 0);
-    }
-    return true;
-  }, [airlineName, ceoName, fleetPreset, customFleet]);
-
-  function buildInitialFleet() {
-    if (fleetPreset === 'custom') return customFleet.filter(f => f.makerModel && f.count > 0);
-    switch (fleetPreset) {
-      case 'none':
-        return [];
-      case 'small':
-        return [
-          { makerModel: 'A320neo', count: 10 },
-          { makerModel: 'B737-8', count: 4 },
-        ];
-      case 'medium':
-        return [
-          { makerModel: 'A320neo', count: 25 },
-          { makerModel: 'A321neo', count: 10 },
-          { makerModel: 'B787-9', count: 5 },
-        ];
-      case 'large':
-        return [
-          { makerModel: 'A320neo', count: 100 },
-          { makerModel: 'A321neo', count: 60 },
-          { makerModel: 'A350-1000', count: 40 },
-        ];
-      default:
-        return [];
-    }
+  function resolveFleet() {
+    if (fleetPreset === 'none') return [];
+    if (fleetPreset === 'custom') return customFleet;
+    if (fleetPreset === 'small')  return [{type:'A320',count:10},{type:'B737',count:4}];
+    if (fleetPreset === 'medium') return [{type:'A320',count:15},{type:'B737',count:10},{type:'A330',count:5}];
+    if (fleetPreset === 'large')  return [{type:'A320',count:60},{type:'B737',count:40},{type:'A330',count:30},{type:'B777',count:10}];
+    return [];
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
+    const resolvedFleet = resolveFleet();
 
-    const config: UserConfig = {
-      airlineName: airlineName.trim(),
-      ceoName: ceoName.trim(),
+    const config: any = {
+      airlineName,
+      ceoName,
       colors: { primary, secondary },
-      settings: {
-        financeMode,
-        gameSpeed,
-      },
-      fleet: buildInitialFleet(),
+      logo,
+      password,
+      financeMode: 'standard',
+      timeMode: 'real',
+      timeScale: 1,
+      fleetPreset,
+      customFleet: resolvedFleet,
     };
 
-    // persistieren
-    const key = `ceo-config-${config.airlineName.toLowerCase()}`;
-    localStorage.setItem(key, JSON.stringify(config));
-
-    // CSS Custom Properties für Theme
-    const root = document.documentElement;
-    root.style.setProperty('--brand-1', primary);
-    root.style.setProperty('--brand-2', secondary);
-
+    localStorage.setItem('userConfig', JSON.stringify(config));
     onComplete(config);
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-black text-white flex items-center justify-center p-6">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-3xl glass-panel rounded-2xl border border-white/10 p-6 space-y-6"
-      >
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold">Crown Aviation — CEO Simulator</h1>
-          <p className="opacity-80">Registriere deine Airline und wähle Start-Parameter.</p>
-        </header>
+    <div className="glass-panel rounded-2xl border border-white/10 p-6">
+      <h2 className="text-xl font-semibold mb-4">Registrierung</h2>
+      <form onSubmit={handleSignup} className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input className="rounded-lg p-2 bg-white/5 border border-white/10" placeholder="Airline-Name"
+                 value={airlineName} onChange={e=>setAirlineName(e.target.value)} required />
+          <input className="rounded-lg p-2 bg-white/5 border border-white/10" placeholder="CEO-Name"
+                 value={ceoName} onChange={e=>setCeoName(e.target.value)} required />
+          <input type="password" className="rounded-lg p-2 bg-white/5 border border-white/10" placeholder="Passwort"
+                 value={password} onChange={e=>setPassword(e.target.value)} required />
+          <div className="flex items-center gap-3">
+            <label className="text-sm opacity-80">Farbe 1</label>
+            <input type="color" value={primary} onChange={e=>setPrimary(e.target.value)} />
+            <label className="text-sm opacity-80">Farbe 2</label>
+            <input type="color" value={secondary} onChange={e=>setSecondary(e.target.value)} />
+          </div>
+        </div>
 
-        {/* Basisdaten */}
-        <section className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm mb-1">Airline-Name</label>
-            <input
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none"
-              value={airlineName}
-              onChange={(e) => setAirlineName(e.target.value)}
-              placeholder="z. B. Crown Aviation"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">CEO</label>
-            <input
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none"
-              value={ceoName}
-              onChange={(e) => setCeoName(e.target.value)}
-              placeholder="Dein Name"
-              required
-            />
-          </div>
-        </section>
-
-        {/* Farben */}
-        <section className="grid md:grid-cols-2 gap-4">
-          <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <div className="text-sm mb-2">Primärfarbe</div>
-            <input
-              type="color"
-              value={primary}
-              onChange={(e) => setPrimary(e.target.value)}
-              className="w-full h-10 rounded"
-            />
-          </div>
-          <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <div className="text-sm mb-2">Sekundärfarbe</div>
-            <input
-              type="color"
-              value={secondary}
-              // ⬇⬇⬇ HIER ist der Fix: e.target.value (mit Punkt)
-              onChange={(e) => setSecondary(e.target.value)}
-              className="w-full h-10 rounded"
-            />
-          </div>
-        </section>
-
-        {/* Finanzen */}
-        <section className="rounded-xl bg-white/5 border border-white/10 p-4">
-          <div className="text-sm mb-2">Finanzen</div>
-          <div className="flex flex-wrap gap-3">
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="finance"
-                checked={financeMode === 'real'}
-                onChange={() => setFinanceMode('real')}
-              />
-              Real (Verschuldung/Bankrott möglich)
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="finance"
-                checked={financeMode === 'sandbox'}
-                onChange={() => setFinanceMode('sandbox')}
-              />
-              Sandkasten (∞ Geld, Reports trotzdem relevant)
-            </label>
-          </div>
-        </section>
-
-        {/* Flotte */}
-        <section className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
-          <div className="text-sm">Start-Flotte</div>
-          <select
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none"
-            value={fleetPreset}
-            onChange={(e) => setFleetPreset(e.target.value as FleetPreset)}
-          >
-            {Object.entries(presets).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
+        {/* Flottengröße */}
+        <div className="space-y-2">
+          <div className="text-sm opacity-80">Startflotte</div>
+          <div className="flex flex-wrap gap-2">
+            {(['none','small','medium','large','custom'] as const).map(k => (
+              <button
+                type="button"
+                key={k}
+                onClick={() => setFleetPreset(k)}
+                className={`px-3 py-1 rounded-lg border ${fleetPreset===k ? 'bg-[var(--brand-1)] text-black' : 'bg-white/5 border-white/10'}`}
+              >
+                {k === 'none' ? 'Keine' : k === 'small' ? 'Klein' : k === 'medium' ? 'Mittel' : k === 'large' ? 'Groß' : 'Eigene Liste'}
+              </button>
             ))}
-          </select>
+          </div>
 
           {fleetPreset === 'custom' && (
             <div className="space-y-2">
-              {customFleet.map((row, i) => (
-                <div key={i} className="grid grid-cols-7 gap-2">
-                  <input
-                    className="col-span-5 rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none"
-                    placeholder="Hersteller & Modell (z. B. A350-1000)"
-                    value={row.makerModel}
-                    onChange={(e) => {
-                      const next = [...customFleet];
-                      next[i].makerModel = e.target.value;
-                      setCustomFleet(next);
-                    }}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    className="col-span-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none"
-                    placeholder="Stückzahl"
-                    value={row.count}
-                    onChange={(e) => {
-                      const next = [...customFleet];
-                      next[i].count = Number(e.target.value || 0);
-                      setCustomFleet(next);
-                    }}
-                  />
+              {customFleet.map((row, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <input className="rounded-lg p-2 bg-white/5 border border-white/10 flex-1" placeholder="Typ (z. B. A320)"
+                         value={row.type} onChange={e=>{
+                           const next=[...customFleet]; next[idx].type=e.target.value; setCustomFleet(next);
+                         }} />
+                  <input type="number" className="rounded-lg p-2 bg-white/5 border border-white/10 w-28" placeholder="Anzahl"
+                         value={row.count} onChange={e=>{
+                           const next=[...customFleet]; next[idx].count=parseInt(e.target.value||'0',10); setCustomFleet(next);
+                         }} />
                 </div>
               ))}
+              <button type="button" className="px-3 py-1 rounded-lg bg-white/10 border border-white/10"
+                      onClick={()=>setCustomFleet([...customFleet,{type:'A320',count:1}])}>
+                Zeile hinzufügen
+              </button>
             </div>
           )}
-        </section>
+        </div>
 
-        {/* Spielmodus / Zeit */}
-        <section className="rounded-xl bg-white/5 border border-white/10 p-4">
-          <div className="text-sm mb-2">Spielmodus / Zeit</div>
-          <div className="grid md:grid-cols-2 gap-3">
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="speed"
-                checked={gameSpeed === 'real'}
-                onChange={() => setGameSpeed('real')}
-              />
-              Real: 1:1 (8h Flug dauert 8h)
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="speed"
-                checked={gameSpeed === 'normal'}
-                onChange={() => setGameSpeed('normal')}
-              />
-              Normal: 1 min = 60 sek
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="speed"
-                checked={gameSpeed === 'fast'}
-                onChange={() => setGameSpeed('fast')}
-              />
-              Schnell: 1 min = 30 sek
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="speed"
-                checked={gameSpeed === 'top'}
-                onChange={() => setGameSpeed('top')}
-              />
-              Top-Speed: 1 min = 5 sek
-            </label>
-          </div>
-        </section>
-
-        <footer className="flex items-center justify-between">
-          <div className="text-xs opacity-70">
-            Theme-Vorschau • Primär: <span style={{ color: primary }}>{primary}</span> • Sekundär:{' '}
-            <span style={{ color: secondary }}>{secondary}</span>
-          </div>
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className={`rounded-xl px-4 py-2 ${canSubmit ? 'bg-[var(--brand-1)] hover:opacity-90' : 'bg-white/10 cursor-not-allowed'}`}
-          >
-            Registrierung abschließen
-          </button>
-        </footer>
+        <button type="submit" className="px-4 py-2 rounded-lg bg-[var(--brand-1)] text-black font-semibold">
+          Konto anlegen
+        </button>
       </form>
     </div>
   );
