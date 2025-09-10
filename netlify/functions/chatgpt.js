@@ -1,102 +1,73 @@
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-const MODEL = "gpt-4o-mini";
+// netlify/functions/chatgpt.js
+// CommonJS, damit Netlify es ohne ESM-Probleme lädt.
+const ALLOWED_ORIGINS = ['*']; // Bei Bedarf auf deine Domain einschränken.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-exports.handler = async (event) => {
+exports.handler = async function (event) {
   try {
-    // CORS‑Preflight behandeln
-    if (event.httpMethod === "OPTIONS") {
-      return { statusCode: 204, headers: corsHeaders, body: "" };
-    }
-    if (event.httpMethod !== "POST") {
-      return {
-        statusCode: 405,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Method Not Allowed" }),
-      };
+    if (event.httpMethod !== 'POST') {
+      return json(405, { error: 'Method not allowed' });
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return {
-        statusCode: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing OPENAI_API_KEY" }),
-      };
+      return json(500, { error: 'OPENAI_API_KEY missing' });
     }
 
-    const body = JSON.parse(event.body || "{}");
-    const prompt = body.prompt ?? "";
-    const contextInfo = body.contextInfo ?? "";
-    const activeRole = body.activeRole ?? "Assistenz des CEO";
-
-    if (!prompt) {
-      return {
-        statusCode: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing 'prompt' in request body" }),
-      };
+    let body;
+    try {
+      body = JSON.parse(event.body || '{}');
+    } catch {
+      return json(400, { error: 'Invalid JSON body' });
     }
 
-    const systemPrompt = `
-Du bist "Ava", die Assistentin des CEO im Airline‑CEO‑Simulator.
-- Sprich den Nutzer als CEO an.
-- Erkläre bei Bedarf die Oberfläche und nächste Schritte.
-- Nutze kurze, prägnante Sätze. Modern, klar, freundlich.
-- Wenn der Client 'activeRole' setzt (z. B. "Leiter OCC"), antworte im Tonfall dieser Rolle.
-- Gib niemals Roh‑JSON zurück, antworte nur mit Text in natürlicher Sprache.
-`.trim();
+    const { prompt, systemPrompt, model = 'gpt-4o-mini', temperature = 0.7 } = body;
+    if (!prompt) return json(400, { error: 'prompt required' });
 
-    const payload = {
-      model: MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...(contextInfo ? [{ role: "system", content: contextInfo }] : []),
-        { role: "user", content: `Rolle: ${activeRole}\n\nFrage/Aufgabe: ${prompt}` },
-      ],
-      temperature: 0.7,
-    };
-
-    const resp = await fetch(OPENAI_API_URL, {
-      method: "POST",
+    // Non-streamed call (stabil, simpel)
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        model,
+        temperature,
+        messages: [
+          ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+          { role: 'user', content: prompt }
+        ]
+      })
     });
 
     if (!resp.ok) {
-      const errText = await resp.text();
-      return {
-        statusCode: resp.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "OpenAI error", details: errText }),
-      };
+      const text = await resp.text();
+      return json(resp.status, { error: 'upstream_error', detail: text });
     }
 
     const data = await resp.json();
-    const replyText = data?.choices?.[0]?.message?.content ?? "";
+    const content = data?.choices?.[0]?.message?.content?.trim() || '';
 
-    return {
-      statusCode: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "Ava",
-        role: activeRole,
-        reply: replyText,
-      }),
-    };
+    // Einheitliches Format, das das Frontend leicht parsen kann
+    return json(200, {
+      ok: true,
+      name: body.name || 'Ava',
+      role: body.role || 'Assistenz des CEO',
+      reply: content
+    });
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({ error: err?.message || "Internal Error" }),
-    };
+    return json(500, { error: String(err?.message || err) });
   }
 };
+
+function json(statusCode, obj) {
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': ALLOWED_ORIGINS.join(','),
+      'Access-Control-Allow-Headers': 'Content-Type'
+    },
+    body: JSON.stringify(obj)
+  };
+}
