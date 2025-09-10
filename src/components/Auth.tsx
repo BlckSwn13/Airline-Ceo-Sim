@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import type { UserConfig } from '@types';
+import StepFinance from '@components/onboarding/StepFinance';
+import StepFleet from '@components/onboarding/StepFleet';
+import StepMode from '@components/onboarding/StepMode';
+import { useOnboardingStore } from '@hooks/useOnboardingStore';
 
 interface AuthProps {
   onComplete: (config: UserConfig) => void;
 }
 
-/**
- * Auth component handles both registration and login flows.  
- * Users can choose two colours and optionally upload or select a logo via the DALL·E wizard.  
- */
 const Auth: React.FC<AuthProps> = ({ onComplete }) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [airlineName, setAirlineName] = useState('');
@@ -17,6 +17,9 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
   const [primary, setPrimary] = useState('#4da3ff');
   const [secondary, setSecondary] = useState('#7cf3c0');
   const [logo, setLogo] = useState<string | undefined>(undefined);
+
+  // Onboarding‑Store für zusätzliche Optionen
+  const onboarding = useOnboardingStore();
 
   function handleModeChange(newMode: 'login' | 'signup') {
     setMode(newMode);
@@ -32,8 +35,7 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
     }
     const config: UserConfig & { password: string } = JSON.parse(stored);
     if (config.colors.primary && config.password === password) {
-      // Remove password before returning
-      const { password: _, ...rest } = config as any;
+      const { password: _pw, ...rest } = config as any;
       onComplete(rest);
     } else {
       alert('Passwort falsch.');
@@ -47,21 +49,24 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
       return;
     }
     const key = `ceo-config-${airlineName.toLowerCase()}`;
+    const { financeMode, timeMode, timeScale, fleetPreset, customFleet } = onboarding;
     const config: any = {
       airlineName,
       ceoName,
       colors: { primary, secondary },
       logo,
-      password
+      password,
+      financeMode,
+      timeMode,
+      timeScale,
+      fleetPreset,
+      customFleet,
     };
     localStorage.setItem(key, JSON.stringify(config));
     onComplete(config);
   }
 
-  // Placeholder for DALL-E logo generation. In a real implementation this would
-  // call a Netlify function to generate and return images.  
   function generateLogos() {
-    // For now we just simulate with placeholder URLs.
     const dummy = [
       'https://placehold.co/120x120/png?text=Logo+1',
       'https://placehold.co/120x120/png?text=Logo+2',
@@ -78,17 +83,13 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
         </h2>
         <div className="mb-4 flex justify-center gap-4">
           <button
-            className={`px-4 py-2 rounded-lg ${
-              mode === 'login' ? 'bg-brand1 text-white' : 'bg-panel'
-            }`}
+            className={`px-4 py-2 rounded-lg ${mode === 'login' ? 'bg-brand1 text-white' : 'bg-panel'}`}
             onClick={() => handleModeChange('login')}
           >
             Log&nbsp;In
           </button>
           <button
-            className={`px-4 py-2 rounded-lg ${
-              mode === 'signup' ? 'bg-brand1 text-white' : 'bg-panel'
-            }`}
+            className={`px-4 py-2 rounded-lg ${mode === 'signup' ? 'bg-brand1 text-white' : 'bg-panel'}`}
             onClick={() => handleModeChange('signup')}
           >
             Sign&nbsp;Up
@@ -102,7 +103,7 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
                 id="login-airline-name"
                 type="text"
                 value={airlineName}
-                onChange={(e) => setAirlineName(e.target.value)}
+                onChange={e => setAirlineName(e.target.value)}
                 className="w-full p-2 rounded bg-panel"
                 required
               />
@@ -113,7 +114,7 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
                 id="login-password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 className="w-full p-2 rounded bg-panel"
                 required
               />
@@ -131,7 +132,7 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
                 id="signup-airline-name"
                 type="text"
                 value={airlineName}
-                onChange={(e) => setAirlineName(e.target.value)}
+                onChange={e => setAirlineName(e.target.value)}
                 className="w-full p-2 rounded bg-panel"
                 required
               />
@@ -142,7 +143,7 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
                 id="signup-ceo-name"
                 type="text"
                 value={ceoName}
-                onChange={(e) => setCeoName(e.target.value)}
+                onChange={e => setCeoName(e.target.value)}
                 className="w-full p-2 rounded bg-panel"
                 required
               />
@@ -154,7 +155,7 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
                   id="color-primary"
                   type="color"
                   value={primary}
-                  onChange={(e) => setPrimary(e.target.value)}
+                  onChange={e => setPrimary(e.target.value)}
                   className="w-full h-10 rounded"
                 />
               </div>
@@ -164,7 +165,7 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
                   id="color-secondary"
                   type="color"
                   value={secondary}
-                  onChange={(e) => setSecondary(e.target.value)}
+                  onChange={e => setSecondary(e.target value)}
                   className="w-full h-10 rounded"
                 />
               </div>
@@ -192,13 +193,19 @@ const Auth: React.FC<AuthProps> = ({ onComplete }) => {
                 </button>
               )}
             </div>
+
+            {/* Neue Onboarding-Schritte */}
+            <StepFinance />
+            <StepFleet />
+            <StepMode />
+
             <div>
               <label htmlFor="signup-password" className="block mb-1 text-sm">Passwort</label>
               <input
                 id="signup-password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 className="w-full p-2 rounded bg-panel"
                 required
               />
