@@ -1,4 +1,3 @@
-// netlify/functions/chatgpt.js
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const MODEL = "gpt-4o-mini";
 
@@ -10,7 +9,7 @@ const corsHeaders = {
 
 exports.handler = async (event) => {
   try {
-    // Preflight
+    // CORS‑Preflight behandeln
     if (event.httpMethod === "OPTIONS") {
       return { statusCode: 204, headers: corsHeaders, body: "" };
     }
@@ -33,8 +32,8 @@ exports.handler = async (event) => {
 
     const body = JSON.parse(event.body || "{}");
     const prompt = body.prompt ?? "";
-    const contextInfo = body.contextInfo ?? ""; // optional: Airline-Name, Farben, Modus etc.
-    const activeRole = body.activeRole ?? "Assistenz des CEO"; // optional: z. B. „Leiter OCC“
+    const contextInfo = body.contextInfo ?? "";
+    const activeRole = body.activeRole ?? "Assistenz des CEO";
 
     if (!prompt) {
       return {
@@ -45,12 +44,12 @@ exports.handler = async (event) => {
     }
 
     const systemPrompt = `
-Du bist "Ava", die Assistentin des CEO im Airline-CEO-Simulator.
+Du bist "Ava", die Assistentin des CEO im Airline‑CEO‑Simulator.
 - Sprich den Nutzer als CEO an.
 - Erkläre bei Bedarf die Oberfläche und nächste Schritte.
 - Nutze kurze, prägnante Sätze. Modern, klar, freundlich.
-- Wenn der Client 'activeRole' setzt (z. B. "Leiter OCC"), antworte im Tonfall dieser Rolle.
-- Gib niemals Roh-JSON zurück, antworte nur mit Text in natürlicher Sprache.
+- Wenn der Client 'activeRole' setzt (z. B. "Leiter OCC"), antworte im Tonfall dieser Rolle.
+- Gib niemals Roh‑JSON zurück, antworte nur mit Text in natürlicher Sprache.
 `.trim();
 
     const payload = {
@@ -89,7 +88,7 @@ Du bist "Ava", die Assistentin des CEO im Airline-CEO-Simulator.
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       body: JSON.stringify({
         name: "Ava",
-        role: activeRole || "Assistenz des CEO",
+        role: activeRole,
         reply: replyText,
       }),
     };
