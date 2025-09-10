@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Dashboard from '@components/Dashboard';
 import OCC from '@components/OCC';
+import HRPage from '../pages/HRPage';
 import { UserConfig } from '@types';
 
 interface LayoutProps {
@@ -8,12 +9,8 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
-/**
- * Layout component wraps the primary UI after the user has logged in.  
- * It provides a sidebar for navigation and renders the corresponding content.  
- */
 const Layout: React.FC<LayoutProps> = ({ userConfig, onLogout }) => {
-  const [tab, setTab] = useState<'dashboard' | 'occ' | 'fleet' | 'finance' | 'settings'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'occ' | 'fleet' | 'finance' | 'settings' | 'hr'>('dashboard');
 
   function renderTab() {
     switch (tab) {
@@ -25,14 +22,21 @@ const Layout: React.FC<LayoutProps> = ({ userConfig, onLogout }) => {
         return <div className="p-4">Flotte (noch nicht implementiert)</div>;
       case 'finance':
         return <div className="p-4">Finanzen (noch nicht implementiert)</div>;
+      case 'hr':
+        return <HRPage />;
       case 'settings':
         return (
           <div className="p-4">
             <h3 className="text-xl mb-2">Einstellungen</h3>
-            <button className="px-4 py-2 bg-brand1 rounded" onClick={() => {
-              localStorage.removeItem(`ceo-config-${userConfig.airlineName.toLowerCase()}`);
-              onLogout();
-            }}>Ausloggen</button>
+            <button
+              className="px-4 py-2 bg-brand1 rounded"
+              onClick={() => {
+                localStorage.removeItem(`ceo-config-${userConfig.airlineName.toLowerCase()}`);
+                onLogout();
+              }}
+            >
+              Ausloggen
+            </button>
           </div>
         );
       default:
@@ -40,8 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ userConfig, onLogout }) => {
     }
   }
 
-  // Apply the chosen brand colours by setting CSS variables on the root element.
-  React.useEffect(() => {
+  useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--brand-1', userConfig.colors.primary);
     root.style.setProperty('--brand-2', userConfig.colors.secondary);
@@ -65,13 +68,14 @@ const Layout: React.FC<LayoutProps> = ({ userConfig, onLogout }) => {
         <button className={`text-left px-3 py-2 rounded ${tab === 'finance' ? 'bg-brand1' : ''}`} onClick={() => setTab('finance')}>
           Finanzen
         </button>
+        <button className={`text-left px-3 py-2 rounded ${tab === 'hr' ? 'bg-brand1' : ''}`} onClick={() => setTab('hr')}>
+          Personal &amp; Programme
+        </button>
         <button className={`text-left px-3 py-2 rounded ${tab === 'settings' ? 'bg-brand1' : ''}`} onClick={() => setTab('settings')}>
           Einstellungen
         </button>
       </nav>
-      <main className="flex-1 overflow-auto p-4">
-        {renderTab()}
-      </main>
+      <main className="flex-1 overflow-auto p-4">{renderTab()}</main>
     </div>
   );
 };
