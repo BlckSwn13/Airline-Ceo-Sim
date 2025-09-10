@@ -1,35 +1,34 @@
+// src/types.ts
 export interface UserConfig {
   airlineName: string;
   ceoName: string;
-  colors: {
-    primary: string;
-    secondary: string;
+  colors: { primary: string; secondary: string };
+  settings: {
+    financeMode: 'real' | 'sandbox';
+    gameSpeed: 'real' | 'normal' | 'fast' | 'top';
   };
-  logo?: string;
-
-  /** Onboarding‑Optionen */
-  financeMode?: 'real' | 'sandbox';
-  timeMode?: 'real' | 'sandbox';
-  timeScale?: 'normal' | 'fast' | 'top';
-  fleetPreset?: 'none' | 'small' | 'medium' | 'large' | 'custom';
-  customFleet?: Array<{ makerModel: string; count: number }>;
+  fleet: { makerModel: string; count: number }[];
 }
-
-export type Status = 'ON_TIME' | 'DELAYED' | 'CANCELLED' | 'DIVERTED';
 
 export interface Flight {
-  num: string;
-  route: string;
-  dep: string;
-  arr: string;
-  status: Status;
-  type: string;
+  id: string;
+  callsign: string;
+  origin: string;
+  destination: string;
+  std: string; // geplante Off-Block (ISO oder hh:mm)
+  sta: string;
+  status: 'ON TIME' | 'DELAYED' | 'BOARDING' | 'IN AIR' | 'CANCELLED';
+  aircraftType: string;
+  registration?: string;
 }
 
-export interface ActionProposal {
-  id: string;
-  flight: string;
-  action: string;
-  details: Record<string, unknown>;
-  impact: 'LOW' | 'MEDIUM' | 'HIGH';
+export interface ChatMessage {
+  author: string;
+  content: string;
+  ts?: number;
+}
+
+export interface FlightChatThread {
+  flightId: string;
+  messages: ChatMessage[];
 }
