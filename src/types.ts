@@ -32,3 +32,22 @@ export interface FlightChatThread {
   flightId: string;
   messages: ChatMessage[];
 }
+
+// --------- Event-Feed ---------
+export type EventCategory =
+  | 'OPS'
+  | 'SAFETY'
+  | 'FINANCE'
+  | 'HR'
+  | 'IT'
+  | 'CUSTOMER';
+
+export interface EventItem {
+  id: string;
+  ts: number;            // epoch ms
+  title: string;         // kurze Headline
+  summary: string;       // 1-2 Sätze
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  category: EventCategory;
+  meta?: Record<string, string>;
+}
