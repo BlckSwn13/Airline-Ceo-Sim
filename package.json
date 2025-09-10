@@ -10,12 +10,12 @@
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
-    "eventsource-parser": "^1.1.2",
-    "framer-motion": "^11.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "zustand": "^4.5.2",
-    "mongoose": "^8.18.1"
+    "framer-motion": "^11.0.0",
+    "mongoose": "^8.18.1",
+    "eventsource-parser": "^1.1.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
