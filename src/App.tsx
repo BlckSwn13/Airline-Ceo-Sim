@@ -4,22 +4,22 @@ import Layout from '@components/Layout';
 import type { UserConfig } from '@types';
 
 /**
- * App is the root component. It manages global user state and toggles between
- * the authentication flow and the main application layout.
+ * App ist die Root-Komponente. Sie verwaltet den globalen User-Zustand
+ * und schaltet zwischen Authentifizierungs-Flow und Haupt-Layout um.
  */
 const App: React.FC = () => {
   const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
 
-  // Load user config from local storage on first mount.
+  // User-Konfiguration beim ersten Mount aus dem LocalStorage laden
   useEffect(() => {
     const keys = Object.keys(localStorage).filter((k) => k.startsWith('ceo-config-'));
     if (keys.length > 0) {
-      // Load the first saved airline as default. In a full implementation, you could
-      // show a list for the user to pick from.
+      // In dieser Demo wird die erste gespeicherte Airline geladen
+      // (später könnte man dem Nutzer eine Auswahl bieten).
       const config = localStorage.getItem(keys[0]);
       if (config) {
         const parsed: any = JSON.parse(config);
-        // Remove password before using.
+        // Passwort entfernen, bevor es im Zustand gespeichert wird
         delete parsed.password;
         setUserConfig(parsed);
       }
