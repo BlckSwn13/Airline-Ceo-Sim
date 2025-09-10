@@ -1,6 +1,9 @@
 module.exports = {
   darkMode: 'class',
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: [
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}'
+  ],
   theme: {
     extend: {
       colors: {
@@ -8,7 +11,13 @@ module.exports = {
         brand2: 'var(--brand-2)',
         bg: '#10151c',
         panel: '#1d232a',
-        glass: 'rgba(255,255,255,0.06)'
+        glass: 'rgba(255, 255, 255, 0.05)'
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif']
+      },
+      boxShadow: {
+        glass: '0 4px 30px rgba(0, 0, 0, 0.1)'
       }
     }
   },
