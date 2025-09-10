@@ -1,67 +1,90 @@
-const { createParser } = require('eventsource-parser');
-
-// ChatGPT streaming Netlify function
-// This function proxies requests to the OpenAI Chat Completions API and streams
-// responses back to the client using Server-Sent Events (SSE).  
+// netlify/functions/chatgpt.js
 exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-  const { prompt, messages } = JSON.parse(event.body || '{}');
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return { statusCode: 500, body: 'OpenAI API key not configured.' };
-  }
-  const sysPrompt = `You are an Airline CEO Simulator assistant. Respond concisely and follow the provided JSON action schema when appropriate.`;
-  const payload = {
-    model: 'gpt-4o',
-    temperature: 0.7,
-    messages: [
-      { role: 'system', content: sysPrompt },
-      ...(messages || [])
-        .filter((m) => m.role && m.content)
-        .map((m) => ({ role: m.role, content: m.content })),
-      { role: 'user', content: prompt }
-    ],
-    stream: true
-  };
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(payload)
-  });
-  if (!response.ok || !response.body) {
-    const err = await response.text();
-    return { statusCode: 500, body: err };
-  }
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const parser = createParser((event) => {});
-  const stream = new ReadableStream({
-    async start(controller) {
-      const reader = response.body.getReader();
-      controller.enqueue(encoder.encode('data: '));
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        parser.feed(chunk);
-        // Pass through raw data to client
-        controller.enqueue(encoder.encode(chunk));
-      }
-      controller.close();
+  try {
+    if (event.httpMethod !== 'POST') {
+      return {
+        statusCode: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: 'Method Not Allowed' })
+      };
     }
-  });
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive'
-    },
-    body: stream
-  };
+
+    const { prompt, messages = [] } = JSON.parse(event.body || '{}');
+    if (!prompt) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: "Missing 'prompt' in request body" })
+      };
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return {
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: 'OpenAI API key missing' })
+      };
+    }
+
+    // Anfrage an OpenAI ohne Streaming
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        temperature: 0.7,
+        messages: [
+          { role: 'system', content: 'You are an Airline CEO Simulator assistant.' },
+          ...messages.filter((m) => m.role && m.content).map((m) => ({ role: m.role, content: m.content })),
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return {
+        statusCode: response.status,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: 'OpenAI error', details: errText })
+      };
+    }
+
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || '';
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ reply })
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ error: err.message || 'Internal error' })
+    };
+  }
 };
